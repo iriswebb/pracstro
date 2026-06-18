@@ -1,0 +1,3 @@
+[workspace]
+resolver = "3"
+members = ["pracstro", "deskephem", "wasm", "cgi-ephem", "ephem-core"]

@@ -1,0 +1,19 @@
+[package]
+name = "pracstro-wasm"
+version = "1.0.0"
+description = "Web Astronomy Calculator and Ephemeris Generator"
+authors = ["Oliver Webb <oliverwebb8192@gmail.com>"]
+license = "0BSD"
+edition = "2021"
+readme = "README.md"
+keywords = ["astronomy", "cli"]
+repository = "https://github.com/oliverkwebb/deskephem"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+pracstro = { path = "../pracstro" }
+ephem-core = { path = "../ephem-core" }
+wasm-bindgen = "0.2.104"
+web-sys = { version = "0.3.81", features = ["console"] }

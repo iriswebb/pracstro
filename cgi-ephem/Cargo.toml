@@ -1,0 +1,17 @@
+[package]
+name = "cgi-ephem"
+version = "0.1.0"
+description = "CGI Astronomy Calculator and Ephemeris Generator"
+authors = ["Oliver Webb <oliverwebb8192@gmail.com>"]
+license = "GPL-2.0-only"
+edition = "2021"
+readme = "README.md"
+keywords = ["astronomy", "web"]
+repository = "https://github.com/oliverkwebb/cgi-ephem"
+
+[dependencies]
+chrono = "0.4.40"
+iau_constellations = "0.1.1"
+html-escape = "0.2.13"
+pracstro = { path = "../pracstro" }
+ephem-core = { path = "../ephem-core" }

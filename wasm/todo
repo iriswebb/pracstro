@@ -1,0 +1,16 @@
+Bugs/Internal:
+- [ ] test cases where reasonable
+- [ ] documentation and comments where reasonable
+ - [ ] timestep
+ - [ ] parse
+ - [ ] output
+ - [ ] query
+ - [ ] value
+Features:
+- [ ] Moar Calculations
+ - [ ] Coordinate Interpolated Rise and Set times
+ - [ ](?) add minor planets and other solar objects
+ - [ ](?) Constellation bounds (i.e. "what constellation is this is")
+ - [ ](?) Some Deep Space Probes? (Dynamic objects)
+ - [ ](?) Moons for other planets?
+ - [ ](?) Viewing from other objects (Which entails converting EVERYTHING into 3d coords)

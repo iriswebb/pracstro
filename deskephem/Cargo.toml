@@ -1,0 +1,16 @@
+[package]
+name = "deskephem"
+version = "1.4.0"
+description = "CLI Astronomy Calculator and Ephemeris Generator"
+authors = ["Oliver Webb <oliverwebb8192@gmail.com>"]
+license = "0BSD"
+edition = "2021"
+readme = "README.md"
+keywords = ["astronomy", "cli"]
+repository = "https://github.com/oliverkwebb/deskephem"
+
+[dependencies]
+chrono = "0.4.40"
+clap = { version = "4.5.34", features = ["cargo"] }
+pracstro = { path = "../pracstro" }
+ephem-core = { path = "../ephem-core" }

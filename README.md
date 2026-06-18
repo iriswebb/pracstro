@@ -1,0 +1,88 @@
+# pracstro - Compact Astronomy Library and Ephemeris Generator
+
+pracstro is an astronomy library made from a collection of other algorithms that is
+compact, principled, and easy to understand. It's made for calculating properties
+of celestial objects, such as the moon, sun, planets, and stars.
+
+```
+use pracstro::*;
+let now_date = time::Date::from_calendar(2025, 4, 16.0);
+let now_time = time::Angle::from_clock(19, 41, 11.0);
+let my_latitude = time::Angle::from_degrees(30.5);
+let my_longitude = time::Angle::from_degrees(-110.0);
+sol::VENUS.location(now_date).horizon(now_date, now_time, my_latitude, my_longitude); // Get the horizontal coordinates of Venus
+moon::MOON.phase(now_date).0; // The illuminated fraction of the moons surface
+time::Angle::from_degrees(120.0).clock(); // 16h00m00s
+```
+
+# Structure
+
+This library contains 4 primary modules, which build upon the ones before them:
+
+1. `time` for the conversion and representation of times, dates, and angles.
+2. `coord` for the conversion and representation of coordinates.
+3. `sol` for the calculation of properties of planets and the sun.
+4. `moon` for the calculation of properties of the moon.
+
+Each of these have one or two types that represent a certain kind of data:
+
+- `Date` - An instant in continuous time.
+- `Angle` - An angle automatically corrected to be between \[0°, 360°\]. Which can also represent a time of day.
+- `Coord` - A pair of angles, representing latitude/longitude on a sphere.
+- `Planet` - A planets orbital properties, along with data required for orbital correction.
+- `Moon` - The moons orbital properties.
+
+These types have methods to get the properties of this data. Primarily in pairs of methods that convert to/from a certain
+representation of that data. Although lone methods that get certain data for a type do exist.
+
+```
+use pracstro::*;
+time::Angle::from_radians(time::Angle::from_decimal(16.0).radians()).clock();
+```
+
+# Benchmarks
+
+| Test           | `pracstro`      | [`astro`](https://crates.io/crates/astro) |
+| -------------- | --------------- | ----------------------------------------- |
+| Moon Phase     | 558ns           | 2,979ns (3µs)                             |
+| Jupiter Coords | 601ns           | 70,860ns (70µs)                           |
+| Full ephemeris | 3,406ns (3.4µs) | 1,208,833ns (1.2ms)                       |
+
+# Goals
+
+- **Simplicity**
+- **0-dependency**
+- **Understandable Design**
+- **Correctness**
+- **Testing and documentation**
+
+# Non-Goals
+
+- **Complete Accuracy**
+- **Extensive Cataloging**
+- **Micro-optimization**
+
+# Precision
+
+This library aims to be accurate enough across a large enough range of time for most user-end applications.
+Its not perfect in its answers down to the arcsecond (nor could it be on a reasonable scale),
+but is does provide enough accuracy for widgets, telescope pointing, scheduling ("Will I be able to see Venus this weekend?"), etc.
+
+# Resources
+
+Any substantial algorithm implemented from another source will be annotated with its source in this documentation.
+This library started as an attempt to implement the algorithms from _Practical astronomy with Your Calculator_,
+but branched out into different techniques. Most test cases in this library were either pulled from _Practical Astronomy with Your Calculator_
+or created from data from Stellariun.
+
+The algorithms in this library are from several sources, mainly:
+
+- <https://www.celestialprogramming.com/> by Greg Miller
+- _Practical astronomy with Your Calculator_ by Peter Duffett-Smith
+- _Astronomical Formulae for Calculators_ by Jean Meeus
+
+Additional tools similar to this in job:
+
+- JPL's SPICE toolkit: https://naif.jpl.nasa.gov/naif/toolkit.html
+- JPL's Online Horizons Ephemeris Generator: https://ssd.jpl.nasa.gov/horizons/
+- Stellarium - Full GUI Planetarium: https://stellarium.org/

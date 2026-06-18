@@ -1,0 +1,13 @@
+<!doctype html>
+<html>
+    <head>
+        <style>
+            body {
+                background-color: #000;
+                color: white;
+                font-size: 0.8rem
+            }
+        </style>
+    </head>
+    <body>
+        <pre>

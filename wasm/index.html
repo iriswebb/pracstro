@@ -1,0 +1,87 @@
+<!doctype html>
+<html>
+    <head>
+        <style>
+            body {
+                background-color: #113;
+                color: white;
+                text-align: center;
+                line-height: 2;
+                font-family: Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif;
+                font-weight: normal;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>WebEphem - Web Astronomy Calculator</h1>
+
+        <p>
+            <label>Object: </label><input type="text" id="object"><br>
+            <label>Property: </label><select id="property">
+            <option value="0">Coordinates (RA/De)</option>
+            <option value="1">Coordinates (Azi/Alt)</option>
+            <option value="2">Coordinates (Ecliptic)</option>
+            <option value="3">Distance</option>
+            <option value="4">Magnitude</option>
+            <option value="5">Phase</option>
+            <option value="6">Phase Name</option>
+            <option value="7">Phase Emoji</option>
+            <option value="8">Illuminated Frac.</option>
+            <option value="9">Angular Diameter</option>
+            <option value="10">Rise Time</option>
+            <option value="11">Set Time</option>
+            <option value="12">Cartesian Coordinates (AU)</option>
+            </select><br>
+            <label>Date: </label><input type="date" id="date"><br>
+            <label>Latitude: </label><input type="text" id="lat"> and
+            <label>Longitude: </label><input type="text" id="long"><br>
+            <label>Format the data?</label><input type="checkbox" id="dataraw"><br>
+            <button id="submit">Submit:</button>
+            <div id="result"></div>
+        </p>
+
+        <script type="module">
+            import init, {
+                webephem_query,
+                webephem_batch_query,
+                catalog_init,
+            } from "./pkg/pracstro_wasm.js";
+
+            function numberUndefWhenEmpty(s) {
+              if (s == "") {
+                return undefined;
+              } else {
+                return Number(s);
+              }
+            }
+
+            function calculate() {
+              try {
+              let property = document.querySelector("#property").value;
+              let result = webephem_query(
+                document.querySelector("#object").value,
+                property,
+                document.querySelector("#date").valueAsDate.getTime()/1000,
+                numberUndefWhenEmpty(document.querySelector("#lat").value),
+                numberUndefWhenEmpty(document.querySelector("#long").value),
+                document.querySelector("#dataraw").checked,
+              );
+              if (Number(property) >= 10 && Number(property) <= 11) {
+                document.querySelector("#result").textContent = new Date(Number(result)*1000).toLocaleString();
+              } else {
+                document.querySelector("#result").textContent = result;
+              }
+              } catch (error) {
+                document.querySelector("#result").innerHTML = `<span style="background-color: red;">ERROR: ${error}</span>`;
+              }
+            }
+
+            async function run() {
+                await init();
+                catalog_init();
+                document.querySelector("#submit").addEventListener("click", calculate);
+            }
+            run();
+        </script>
+    </body>
+</html>

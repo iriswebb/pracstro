@@ -1,0 +1,10 @@
+[package]
+name = "ephem-core"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+pracstro = { path = "../pracstro" }
+chrono = "0.4.40"
+
+[features]

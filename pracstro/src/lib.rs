@@ -1,0 +1,64 @@
+#![warn(missing_docs)]
+/*!
+# pracstro - Compact Astronomy Library and Ephemeris Generator
+
+pracstro is an astronomy library made from a collection of other algorithms that is
+compact, principled, and easy to understand. It's made for calculating properties
+of celestial objects, such as the moon, sun, planets, and stars.
+
+```
+use pracstro::*;
+use pracstro::celobj::CelObj;
+
+let now_date = time::Date::from_calendar(2025, 4, 16, time::Angle::from_clock(0, 0, 0.0));
+let now_time = time::Angle::from_clock(19, 41, 11.0);
+let my_latitude = time::Angle::from_degrees(30.5);
+let my_longitude = time::Angle::from_degrees(-110.0);
+
+sol::VENUS.location(now_date).horizon(now_date, my_latitude, my_longitude); // Get the horizontal coordinates of Venus
+moon::MOON.illumfrac(now_date); // The illuminated fraction of the moons surface
+time::Angle::from_degrees(120.0).clock(); // 16h00m00s
+```
+
+# Benchmarks
+
+Although speed is not a direct goal of this library, the simplicity of the algorithms used often makes
+the library much faster than other astronomy libraries. The tradeoff for this simplicity is
+some accuracy, though the library remains accurate enough for most real-world use.
+
+Average of many tests, n = 40,000:
+
+| Test           | `pracstro`           | [`astro`](https://crates.io/crates/astro) |
+|----------------|----------------------|---------------------|
+| Moon Phase     | 558ns                | 2,979ns (3µs)       |
+| Jupiter Coords | 601ns                | 70,860ns (70µs)     |
+| Full ephemeris | 3,406ns (3.4µs)      | 1,208,833ns (1.2ms) |
+
+# Structure
+This library contains 4 primary modules, which build upon the ones before them:
+1. [`time`] for the conversion and representation of times, dates, and angles.
+2. [`coord`] for the conversion and representation of coordinates.
+3. [`sol`] for the calculation of properties of planets and the sun.
+4. [`moon`] for the calculation of properties of the moon.
+
+Each of these have one or two types that represent a certain kind of data:
+- [`Date`](time::Date) - An instant in continuous time.
+- [`Angle`](time::Angle) - An angle automatically corrected to be between \[0°, 360°\]. Which can also represent a time of day.
+- [`Coord`](coord::Coord) - A pair of angles, representing latitude/longitude on a sphere.
+- [`Planet`](sol::Planet) - A planets orbital properties, along with data required for orbital correction.
+- [`Moon`](moon::Moon) - The moons orbital properties.
+
+These types have methods to get the properties of this data. Primarily in pairs of methods that convert to/from a certain
+representation of that data. Although lone methods that get certain data for a type do exist.
+*/
+
+pub mod celobj;
+pub mod coord;
+pub mod moon;
+pub mod sol;
+pub mod time;
+
+pub use crate::celobj::*;
+
+// Since the Probe Module is experimental and will be in development until a method of getting comet positions is worked out, it is not shipped with the main library
+//pub mod probe;
