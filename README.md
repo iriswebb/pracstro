@@ -62,6 +62,14 @@ time::Angle::from_radians(time::Angle::from_decimal(16.0).radians()).clock();
 - **Extensive Cataloging**
 - **Micro-optimization**
 
+# TODO
+
+[ ] - Make pracstro `no_std` using `core_float_math`
+[ ] - Add a way to calculate asteriod trajectories
+[ ] - Segment that algorithm to create a approximation algorithm for space probe positions
+[ ] - Merge ephem-core and pracstro
+[ ] - Make deskephem and cgi-ephem release binaries of the pracstro crate
+
 # Precision
 
 This library aims to be accurate enough across a large enough range of time for most user-end applications.
