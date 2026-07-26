@@ -29,6 +29,7 @@ Orbital property and correction numbers from <https://ssd.jpl.nasa.gov/planets/a
 
 use crate::{
     celobj::{BaseCatalogObject, CelObj},
+    coord::Position,
     time,
 };
 
@@ -49,9 +50,8 @@ impl BaseCatalogObject for Sun {
 }
 
 impl CelObj for Sun {
-    fn locationcart(&self, d: time::Date) -> (f64, f64, f64) {
-        let (x, y, z) = EARTH.locationcart_sunrelative(d);
-        (-x, -y, -z)
+    fn position(&self, _: time::Date) -> Position {
+        Position::ZERO
     }
 
     fn brightness(&self, d: time::Date) -> f64 {
@@ -94,10 +94,16 @@ pub struct Planet {
     pub v0: f64,
 }
 impl Planet {
+    fn sun_distance(&self, d: time::Date) -> f64 {
+        self.position(d).dist()
+    }
+}
+
+impl CelObj for Planet {
     /// Returns heliocentric the location of the planets as rectangular coordinates as relative to the Sun, in AU
     ///
     /// From <https://ssd.jpl.nasa.gov/planets/approx_pos.html>
-    pub fn locationcart_sunrelative(&self, d: time::Date) -> (f64, f64, f64) {
+    fn position(&self, d: time::Date) -> Position {
         let t = d.centuries();
         let a = self.a + self.rates[0] * t;
         let e = self.e + self.rates[1] * t;
@@ -137,21 +143,7 @@ impl Planet {
         let ty = eps.cos() * yecl - eps.sin() * zecl;
         let tz = eps.sin() * yecl + eps.cos() * zecl;
 
-        (tx, ty, tz)
-    }
-
-    fn sun_distance(&self, d: time::Date) -> f64 {
-        let (tx, ty, tz) = self.locationcart(d);
-        (tx * tx + ty * ty + tz * tz).sqrt()
-    }
-}
-
-impl CelObj for Planet {
-    fn locationcart(&self, d: time::Date) -> (f64, f64, f64) {
-        let c = self.locationcart_sunrelative(d);
-        let e = EARTH.locationcart_sunrelative(d);
-
-        (c.0 - e.0, c.1 - e.1, c.2 - e.2)
+        Position::from_cartesian((tx, ty, tz))
     }
 
     fn brightness(&self, d: time::Date) -> f64 {
@@ -172,7 +164,7 @@ impl BaseCatalogObject for Planet {
 
     fn phaseangle(&self, d: time::Date) -> Option<time::Angle> {
         let sep = SUN.location(d).dist(self.location(d));
-        let (tx, ty, tz) = self.locationcart_sunrelative(d);
+        let (tx, ty, tz) = self.position(d).cartesian();
         let sp = (tx * tx + ty * ty + tz * tz).sqrt();
         let upa = time::Angle::asin(SUN.distance(d) * (sep.sin() / sp));
         if (tx * tx + ty * ty + tz * tz).sqrt() < 1.0 {
@@ -399,7 +391,7 @@ mod tests {
             SUN.location(time::Date::from_julian(2268932.541667)),
             coord::Coord::from_equatorial(
                 time::Angle::from_degminsec(298, 29, 42.42),
-                time::Angle::from_degminsec(-21, 4, 0.91664)
+                time::Angle::from_degminsec(-20, 55, 0.91664)
             )
         );
     }

@@ -35,6 +35,16 @@ Additional Methods:
 * Inverse of angle: [`Angle::inverse()`]
 * GST Correction: [`Angle::gst()`] and [`Angle::ungst()`]
 * Approx. Atmosphereic Refraction: [`Angle::refract()`] and [`Angle::refractdelta()`]
+* Displaying as string: [`Angle::display_dms`]
+* Simultaneous sine and cosine: [`Angle::sin_cos`]
+
+Trait Impls:
+* Add, Sub (Angle and Angle)
+* Mul, Div (Angle and f64)
+* Default
+* PartialEq
+* Clone, Copy
+* PartialOrd
 */
 #[derive(Clone, Copy, Default, PartialOrd)]
 pub struct Angle(f64);
@@ -175,7 +185,11 @@ impl Angle {
     }
     /// Identical to from_clock in math
     pub const fn from_degminsec(d: i16, m: u8, s: f64) -> Self {
-        Angle::from_degrees((d as f64) + (((m as f64) + (s / 60.0)) / 60.0))
+        if d > 0 {
+            Angle::from_degrees((d as f64) + (((m as f64) + (s / 60.0)) / 60.0))
+        } else {
+            Angle::from_degrees(-((d.abs() as f64) + (((m as f64) + (s / 60.0)) / 60.0)))
+        }
     }
 
     /// Handles the discontinuity created by the orbit of the earth as compared to its rotation.
@@ -206,6 +220,10 @@ impl Angle {
     /// Cosine of Angle
     pub fn cos(self) -> f64 {
         self.radians().cos()
+    }
+    /// (Sine, Cosine) of the Angle
+    pub fn sin_cos(self) -> (f64, f64) {
+        self.radians().sin_cos()
     }
     /// Tangent of Angle
     pub fn tan(self) -> f64 {
@@ -263,6 +281,11 @@ impl Angle {
         let (d, m, s) = self.degminsec();
         format!("{:02}°{:02}′{:02.1}″", d, m, s)
     }
+
+    /// 0 degrees, 00h00m00s, and 0 radians
+    ///
+    /// Same as [`Angle::default()`]
+    pub const ZERO: Angle = Angle(0.0);
 }
 /// Used in testing
 impl fmt::Debug for Angle {
@@ -312,26 +335,35 @@ impl Div<f64> for Angle {
 /**
 Continuous Instant in Time
 
-| Property          | To Method             | From Method                |
-|-------------------|-----------------------|----------------------------|
-| Julian Day        | [`Date::julian()`]    | [`Date::from_julian()`]    |
-| Calendar          | [`Date::calendar()`]  | [`Date::from_calendar()`]  |
-| Unix Time         | [`Date::unix()`]      | [`Date::from_unix()`]      |
-| Date/Time         | [`Date::time()`]      | [`Date::from_time()`]      |
+| Property          | To Method                   | From Method                    |
+|-------------------|-----------------------------|--------------------------------|
+| Julian Day        | [`Date::julian()`]          | [`Date::from_julian()`]        |
+| Modified Julian   | [`Date::modified_julian()`] | [`Date::from_modified_julian`] |
+| Calendar          | [`Date::calendar()`]        | [`Date::from_calendar()`]      |
+| Unix Time         | [`Date::unix()`]            | [`Date::from_unix()`]          |
+| Date/Time         | [`Date::time()`]            | [`Date::from_time()`]          |
 
 Additional Methods
-* Get the current time: [`Date::now()`]
+* Get the current date: [`Date::now()`]
 * Julian Centuries since J2000: [`Date::centuries()`]
+
+Constants include epochs for various modified julian dates
+
+Implements Add and Sub
 */
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Date(f64);
 impl Date {
+    /// Returns the Julian Date (Epoch -4713 BC)
+    ///
     /// Direct interface to type
     ///
     /// This is the only function that should directly read the fields of the type
     pub const fn julian(self) -> f64 {
         self.0
     }
+    /// Constructs a date from a Julian Date (Epoch -4713 BC)
+    ///
     /// Direct interface to type
     ///
     /// This is the only function that should directly write the fields of the type
@@ -339,11 +371,25 @@ impl Date {
         Date(x)
     }
 
+    /// Returns a Modified Julian Date from Date and Epoch
+    ///
+    /// Specific Modified Epochs provided in the type constants
+    pub fn modified_julian(self, epoch: Date) -> f64 {
+        (self - epoch).julian()
+    }
+
+    /// Constructs a Date from Modified Julian Date and Epoch
+    ///
+    /// Specific Modified Epochs provided in the type constants
+    pub fn from_modified_julian(x: f64, epoch: Date) -> Date {
+        Date::from_julian(x) + epoch
+    }
+
     /// Returns Julian Centuries since 1900.
     ///
     /// Used heavily in astronomical estimation of things that change slowly
     pub const fn centuries(self) -> f64 {
-        (self.julian() - 2451545.0) / 36525.0
+        (self.julian() - Self::J2000.julian()) / 36525.0
     }
 
     /// Returns Year, Month, Day (time is Angle::from_decimal(day.fract()))
@@ -353,7 +399,7 @@ impl Date {
         let j = self.julian() + 0.5;
         let (i, f) = (j.trunc(), j.fract());
 
-        let b = if i > 2_299_160.0 {
+        let b = if i > Self::LJD.julian() {
             let a = ((i - 1867216.25) / 36524.25).trunc();
             i + 1.0 + a - (a / 4.0).trunc()
         } else {
@@ -401,11 +447,11 @@ impl Date {
 
     /// Interface for unix time, Does not correct for the 1582 Julain/Gregorian split
     pub const fn unix(self) -> f64 {
-        (self.julian() - 2440587.5) * 86400.0
+        (self.julian() - Self::UNIX_JD.julian()) * 86400.0
     }
     /// Interface for unix time, Does not correct for the 1582 Julain/Gregorian split
     pub const fn from_unix(t: f64) -> Self {
-        Date::from_julian((t / 86400.0) + 2440587.5)
+        Date::from_julian((t / 86400.0) + Self::UNIX_JD.julian())
     }
 
     /// Gets the current date
@@ -418,6 +464,29 @@ impl Date {
             .expect("Expected pre-1970-01-01 date")
             .as_secs() as f64;
         Date::from_unix(now)
+    }
+
+    /// January 0th, 4713 BC, The Julian Epoch
+    pub const ZERO: Date = Date::from_julian(0.0);
+    /// January 1st, 2000, The J2000 Epoch
+    pub const J2000: Date = Date::from_julian(2451545.0);
+    /// December 31st, 1899, The Dublin JD Epoch
+    pub const DJD: Date = Date::from_julian(2415020.0);
+    /// October 15th, 1582, The Lilian Epoch
+    pub const LJD: Date = Date::from_julian(2299159.5);
+    /// January 1st, 1970, The UNIX Epoch
+    pub const UNIX_JD: Date = Date::from_julian(2440587.5);
+}
+impl Add for Date {
+    type Output = Self;
+    fn add(self, rhs: Self) -> Self::Output {
+        Date::from_julian(self.julian() + rhs.julian())
+    }
+}
+impl Sub for Date {
+    type Output = Self;
+    fn sub(self, rhs: Self) -> Self::Output {
+        Date::from_julian(self.julian() - rhs.julian())
     }
 }
 

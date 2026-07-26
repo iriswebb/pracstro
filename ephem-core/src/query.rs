@@ -60,18 +60,17 @@ pub fn property_of(obj: &CelestObj, q: Property, rf: &RefFrame) -> Result<Value,
         (Property::Equatorial, CelestObj::Sun) => Ok(Value::Crd(
             sol::SUN
                 .location(rf.date)
-                .precess(time::Date::from_julian(2451545.0), rf.date),
+                .precess(time::Date::J2000, rf.date),
             CrdView::Equatorial,
         )),
         (Property::Equatorial, CelestObj::Moon) => Ok(Value::Crd(
             moon::MOON
                 .location(rf.date)
-                .precess(time::Date::from_julian(2451545.0), rf.date),
+                .precess(time::Date::J2000, rf.date),
             CrdView::Equatorial,
         )),
         (Property::Equatorial, CelestObj::Star(s)) => Ok(Value::Crd(
-            s.loc_j2k
-                .precess(time::Date::from_julian(2451545.0), rf.date),
+            s.loc_j2k.precess(time::Date::J2000, rf.date),
             CrdView::Equatorial,
         )),
         (Property::Equatorial, CelestObj::Crd(s)) => Ok(Value::Crd(s, CrdView::Equatorial)),
@@ -200,4 +199,65 @@ pub fn run(
                 .unwrap_or_else(|e| panic!("Error on property {prop}: {e}"))
         })
         .collect())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use pracstro::coord;
+    use pracstro::moon::MOON;
+
+    #[test]
+    fn test_moonlocation() {
+        assert_eq!(
+            MOON.location(time::Date::from_julian(2460748.554861)),
+            coord::Coord::from_equatorial(
+                time::Angle::from_degminsec(172, 11, 15.7),
+                time::Angle::from_degminsec(3, 59, 15.2)
+            )
+        );
+    }
+
+    #[test]
+    fn test_moonphase() {
+        assert_eq!(
+            MOON.illumfrac(time::Date::from_calendar(
+                2025,
+                03,
+                29,
+                time::Angle::default()
+            )),
+            0.002799062630499616
+        );
+        assert_eq!(
+            MOON.illumfrac(time::Date::from_calendar(
+                2025,
+                04,
+                09,
+                time::Angle::default()
+            )),
+            0.8694887493109439
+        );
+        assert_eq!(
+            MOON.magnitude(time::Date::from_calendar(
+                2024,
+                12,
+                25,
+                time::Angle::default()
+            )),
+            -11.366493493867907
+        );
+    }
+
+    #[test]
+    fn test_moondist() {
+        assert_eq!(
+            MOON.distance(time::Date::from_julian(2460748.467894)),
+            0.0026765709280575905
+        );
+        assert_eq!(
+            MOON.angdia(time::Date::from_julian(2460748.467894)),
+            time::Angle::from_degrees(0.499999999)
+        );
+    }
 }

@@ -1,12 +1,12 @@
 //! Celestial object trait for generics
 
-use crate::coord::Coord;
+use crate::coord::{Coord, Position};
 use crate::time::{self, Angle};
 
-/// A celestial object in pracstro is defined by the ability to query its cartesian coordinates from time
+/// A celestial object in pracstro is defined by the ability to query its position from time
 pub trait CelObj {
-    /// The geocentric cartesian coordinates of the object (Equatorial, Earth-Centric)
-    fn locationcart(&self, d: time::Date) -> (f64, f64, f64);
+    /// The heliocentric 3d coordinates of the Object (Sun-fixed, equatorial, AU)
+    fn position(&self, d: time::Date) -> Position;
     /// The Absolute Magnitude of the object
     fn brightness(&self, d: time::Date) -> f64;
     /// The Name of the Object
@@ -14,14 +14,12 @@ pub trait CelObj {
 
     /// The 2D Polar Coordinates of the object
     fn location(&self, d: time::Date) -> Coord {
-        let (x, y, z) = self.locationcart(d);
-        Coord::from_cartesian(x, y, z)
+        self.position(d).coords_geo(d)
     }
 
     /// The distance from the reference frame to the object, in AU
     fn distance(&self, d: time::Date) -> f64 {
-        let (x, y, z) = self.locationcart(d);
-        (x * x + y * y + z * z).sqrt()
+        self.position(d).solar_to_geo(d).dist()
     }
 }
 

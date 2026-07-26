@@ -1,13 +1,18 @@
 //! Coordinate handling
 //!
-//! This module contains one type, [`Coord`]. That has methods to convert two and from several
+//! This module contains two types, [`Coord`] (the 2D type) and [`Position`] (the 3D type).
+//!
+//! [`Coord`] has methods to convert two and from several
 //! different coordinate systems. Mainly:
 //! - Equatorial (Hour Angle, Declination)
 //! - Horizon (Azimuth, Altitude)
 //! - Ecliptic (Beta, Lambda)
 //!
+//! [`Position`] can be used to transfer between reference systems
+//!
 //! This type also contains algorithms for converting from Cartesian (rectangular) coordinates, rise and set times, distance between angles, etc.
 
+use crate::celobj::CelObj;
 use crate::time::*;
 
 /// Gets the mean obliquity of the ecliptic at a certain date
@@ -26,7 +31,8 @@ Pair of angles, Representing "How far up" and "How far round"
 | Equatorial        | Declination (δ)   | Right Ascension (α) |                                 | [`Coord::equatorial()`]| [`Coord::from_equatorial()`]|
 | Horizontal        | Altitude (a)      | Azimuth (A)         | Date, Time, Latitude, Longitude | [`Coord::horizon()`]   | [`Coord::from_horizon()`]   |
 | Ecliptic          | Ecl. Latitude (β) | Ecl. Longitude (λ)  | Date[^1]                        | [`Coord::ecliptic()`]  | [`Coord::from_ecliptic()`]  |
-| Cartesian         | N/A (3D system)   | N/A (3D system)     | Distance                        | [`Coord::cartesian()`] | [`Coord::from_cartesian()`] |
+
+Also see [`Position`] for 3D coordinates and reference frame transformations
 
 Additional Methods:
 * Distance between coordinates: [`Coord::dist()`]
@@ -96,28 +102,6 @@ impl Coord {
         Coord::from_equatorial(ra, de)
     }
 
-    /// Convert 3D Rectangular Coordinates to 2D Polar Coordinates
-    ///
-    /// This does not retain the distance to the object
-    pub fn from_cartesian(x: f64, y: f64, z: f64) -> Self {
-        let (tx, ty, tz) = (x, y, z);
-        let r = (tx * tx + ty * ty + tz * tz).sqrt();
-        let l = Angle::atan2(ty, tx);
-        let t2 = Angle::from_radians(0.5 * std::f64::consts::PI - (tz / r).acos());
-
-        Coord::from_equatorial(l, t2)
-    }
-
-    /// Convert 2D Polar into 3D rectangular, depends on distance
-    pub fn cartesian(self, dist: f64) -> (f64, f64, f64) {
-        let (lat, long) = self.equatorial();
-        let x = dist * lat.cos() * long.cos();
-        let y = dist * lat.cos() * long.sin();
-        let z = dist * lat.sin();
-
-        (x, y, z)
-    }
-
     /// Returns the angle between two objects
     pub fn dist(self, from: Self) -> Angle {
         let ((a1, d1), (a2, d2)) = (self.equatorial(), from.equatorial());
@@ -146,12 +130,143 @@ impl Coord {
             Angle::from_clock(0, 0, 3.07234) + Angle::from_clock(0, 0, 0.00186) * epoch.centuries();
         let n = Angle::from_degminsec(0, 0, 20.0468)
             + Angle::from_degminsec(0, 0, 0.0085) * epoch.centuries();
+        let n = n.to_latitude();
         let deltara = m.degrees() + n.degrees() * ra.sin() * de.tan();
-        let deltade = n.degrees() * ra.cos();
+        let deltade = n.to_latitude().degrees() * ra.cos();
         Coord::from_equatorial(
             ra + Angle::from_degrees(deltara * diff),
             de + Angle::from_degrees(deltade * diff),
         )
+    }
+}
+
+/// A point in 3 dimensional space, equivalent to the vector space R^3.
+/// ICRF, Solar Relative, and in AU by convention.
+///
+/// Due to the ambiguity between reference frames, Polar methods are suffixed with `referenceframe_relative`
+///
+/// | System      | To Method                                      | From Method                                       |
+/// |-------------|------------------------------------------------|---------------------------------------------------|
+/// | Polar       | [`Position::cartesian()`]                      | [`Position::from_cartesian()`]                    |
+/// | Cartesian   | [`Position::polar_referenceobject_relative()`] | [`Position::from_polar_referenceobject_relative`] |
+///
+/// Additional Methods:
+/// * coords_geo: Coords once converting from Heliocentric -> Geocentric
+/// * dist: The distance of the object
+/// * normalize: Convert the object so the distance is 1.0
+///
+/// The main uses for this type are representing a 2D coordinate with a distance, and translating between
+/// reference frames.
+#[derive(Debug, PartialEq, Clone, Copy, Default)]
+pub struct Position(f64, f64, f64);
+impl Position {
+    /// The Origin, Analogous to the position of the reference frame
+    pub const ZERO: Self = Self(0.0, 0.0, 0.0);
+
+    /// The Cartesian coordinates of the position
+    pub const fn cartesian(self) -> (f64, f64, f64) {
+        (self.0, self.1, self.2)
+    }
+
+    /// Constructs a position from Cartesian coordinates
+    pub const fn from_cartesian(x: (f64, f64, f64)) -> Position {
+        Position(x.0, x.1, x.2)
+    }
+
+    /// The distance from an object to the reference frame; The magnitude of the vector.
+    ///
+    /// Conventionally in AU
+    pub fn dist(self) -> f64 {
+        let Self(x, y, z) = self;
+        (x * x + y * y + z * z).sqrt()
+    }
+
+    /// Converts solar coordinates to geocentric
+    pub fn solar_to_geo(self, d: Date) -> Self {
+        self - crate::sol::EARTH.position(d)
+    }
+
+    /// Converts geocentric coordinates to solar
+    pub fn geo_to_solar(self, d: Date) -> Self {
+        self + crate::sol::EARTH.position(d)
+    }
+
+    /// The 2D coordinates of the object relative to the Earth, assuming the input coordinate is solar relative
+    /// (which they are by default).
+    ///
+    /// Does not retain distance.
+    pub fn coords_geo(self, d: Date) -> Coord {
+        self.solar_to_geo(d).coords_referenceobject_relative()
+    }
+
+    /// From the perspective of the reference object, the direction of the vector as a 2D [`Coord`]
+    ///
+    /// Note: This assumes that the position reference frame is **geocentric** (and ICRF), use [`Position::coords_geo`]
+    /// if your position value was returned from another function, since the API treats `Position` as heliocentric.
+    ///
+    /// This does not retain the distance to the object
+    pub fn coords_referenceobject_relative(self) -> Coord {
+        let Self(tx, ty, tz) = self;
+        let r = (tx * tx + ty * ty + tz * tz).sqrt();
+        let l = Angle::atan2(ty, tx);
+        let t2 = Angle::from_radians(0.5 * std::f64::consts::PI - (tz / r).acos());
+
+        Coord::from_equatorial(l, t2)
+    }
+
+    /// Decomposes a position into its 2d coordinates and distance, relative to the origin object (by default the Sun)
+    pub fn polar_referenceobject_relative(self) -> (Coord, f64) {
+        (self.coords_referenceobject_relative(), self.dist())
+    }
+
+    /// Constructs an object from coordinates and distance
+    pub fn from_polar_referenceobject_relative(c: Coord, dist: f64) -> Self {
+        let (lat, long) = c.equatorial();
+        let x = dist * lat.cos() * long.cos();
+        let y = dist * lat.cos() * long.sin();
+        let z = dist * lat.sin();
+
+        Self::from_cartesian((x, y, z))
+    }
+
+    /// Normalizes the vector so that the distance is 1.0 but the direction remains the same
+    pub fn normalize(self) -> Self {
+        self / self.dist()
+    }
+}
+use std::ops::{Add, Div, Mul, Sub};
+impl Add for Position {
+    type Output = Self;
+    fn add(self, rhs: Self) -> Self::Output {
+        let Self(x1, y1, z1) = self;
+        let Self(x2, y2, z2) = rhs;
+
+        Self(x1 + x2, y1 + y2, z1 + z2)
+    }
+}
+impl Sub for Position {
+    type Output = Self;
+    fn sub(self, rhs: Self) -> Self::Output {
+        let Self(x1, y1, z1) = self;
+        let Self(x2, y2, z2) = rhs;
+
+        Self(x1 - x2, y1 - y2, z1 - z2)
+    }
+}
+impl Mul<f64> for Position {
+    type Output = Self;
+    fn mul(self, rhs: f64) -> Self::Output {
+        let Self(x1, y1, z1) = self;
+
+        Self(x1 * rhs, y1 * rhs, z1 * rhs)
+    }
+}
+impl Div<f64> for Position {
+    type Output = Self;
+    fn div(self, rhs: f64) -> Self::Output {
+        let Self(x1, y1, z1) = self;
+
+        Self(x1 / rhs, y1 / rhs, z1 / rhs)
     }
 }
 
@@ -191,8 +306,8 @@ mod tests {
                 Angle::from_degrees(-1.0)
             ),
             (
-                Angle::from_degminsec(249, 37, 18.2),
-                Angle::from_degminsec(28, 34, 54.8)
+                Angle::from_degminsec(247, 58, 18.2),
+                Angle::from_degminsec(28, 11, 54.8)
             )
         );
         assert_eq!(
@@ -202,21 +317,21 @@ mod tests {
                 Angle::from_degrees(-93.20801)
             ),
             (
-                Angle::from_degminsec(184, 47, 2.3),
-                Angle::from_degminsec(29, 45, 27.2)
+                Angle::from_degminsec(184, 41, 2.3),
+                Angle::from_degminsec(28, 15, 27.2)
             )
         );
         assert_eq!(
             Coord::from_horizon(
-                Angle::from_degminsec(184, 47, 2.3),
-                Angle::from_degminsec(29, 45, 27.2),
+                Angle::from_degminsec(184, 41, 2.3),
+                Angle::from_degminsec(28, 15, 6.33),
                 Date::from_calendar(2025, 3, 11, Angle::from_clock(2, 0, 0.0)),
                 Angle::from_degrees(44.8714),
                 Angle::from_degrees(-93.20801)
             ),
             sirius
         );
-        assert_eq!(sirius.dist(arcturus), Angle::from_degminsec(115, 55, 5.17));
+        assert_eq!(sirius.dist(arcturus), Angle::from_degminsec(116, 16, 31.26));
     }
 
     #[test]
@@ -265,4 +380,7 @@ mod tests {
             star1
         );
     }
+
+    #[test]
+    fn test_cart() {}
 }

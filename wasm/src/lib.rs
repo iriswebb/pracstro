@@ -50,27 +50,6 @@ pub fn parse_object(
 }
 
 #[wasm_bindgen]
-pub unsafe fn location_cart_of(object: &str, time: f64) -> Result<Vec<f64>, String> {
-    fn c(f: (f64, f64, f64)) -> Vec<f64> {
-        vec![f.0, f.1, f.2]
-    }
-    let selection = parse_object(object, CATALOG.get().unwrap())?;
-    let date = pracstro::time::Date::from_unix(time);
-    match selection {
-        CelestObj::Moon => Ok(c(MOON.locationcart(date))),
-        CelestObj::Sun => Ok(c(pracstro::sol::SUN.locationcart(date))),
-        CelestObj::Planet(p) => Ok(c(p.locationcart(date))),
-        CelestObj::Star(s) => Ok(c(pracstro::coord::Coord::cartesian(
-            s.loc_j2k,
-            (1.0 / s.pi.degrees() * 1296000.0) * 3.26,
-        ))),
-        CelestObj::Crd(_) => {
-            Err("Can not get the 3d coordinate of a 2d coordinate without distance".into())
-        }
-    }
-}
-
-#[wasm_bindgen]
 pub unsafe fn webephem_query(
     object: &str,
     property: &str,

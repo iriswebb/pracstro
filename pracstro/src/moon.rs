@@ -12,7 +12,7 @@ Contains one main type, `Moon`, with methods for:
 */
 use crate::{
     celobj::CelObj,
-    coord::{self, Coord},
+    coord::{self, Position},
     sol, time,
 };
 
@@ -113,9 +113,9 @@ impl Moon {
     }
 
     /// Gets the cartesian coordinates of the moon in AU
-    pub fn locationcart(self, d: time::Date) -> (f64, f64, f64) {
+    pub fn position(self, d: time::Date) -> Position {
         let (_, crd, dist) = self.mooninfo(d);
-        Coord::cartesian(crd, dist)
+        Position::from_polar_referenceobject_relative(crd, dist).geo_to_solar(d)
     }
 
     /// Returns age of phase in Days

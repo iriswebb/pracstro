@@ -45,6 +45,7 @@ Each of these have one or two types that represent a certain kind of data:
 - [`Date`](time::Date) - An instant in continuous time.
 - [`Angle`](time::Angle) - An angle automatically corrected to be between \[0°, 360°\]. Which can also represent a time of day.
 - [`Coord`](coord::Coord) - A pair of angles, representing latitude/longitude on a sphere.
+- [`Position`](coord::Position) - A point in 3D space
 - [`Planet`](sol::Planet) - A planets orbital properties, along with data required for orbital correction.
 - [`Moon`](moon::Moon) - The moons orbital properties.
 
@@ -54,6 +55,7 @@ representation of that data. Although lone methods that get certain data for a t
 
 pub mod celobj;
 pub mod coord;
+pub mod kepler;
 pub mod moon;
 pub mod sol;
 pub mod time;

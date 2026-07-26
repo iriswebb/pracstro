@@ -23,12 +23,14 @@ This library contains 4 primary modules, which build upon the ones before them:
 2. `coord` for the conversion and representation of coordinates.
 3. `sol` for the calculation of properties of planets and the sun.
 4. `moon` for the calculation of properties of the moon.
+5. `kepler` for arbitrary solar orbits
 
 Each of these have one or two types that represent a certain kind of data:
 
 - `Date` - An instant in continuous time.
 - `Angle` - An angle automatically corrected to be between \[0°, 360°\]. Which can also represent a time of day.
 - `Coord` - A pair of angles, representing latitude/longitude on a sphere.
+- `Position` - A point in 3D space
 - `Planet` - A planets orbital properties, along with data required for orbital correction.
 - `Moon` - The moons orbital properties.
 
