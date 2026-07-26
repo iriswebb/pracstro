@@ -367,7 +367,7 @@ pub const PLUTO: Planet = Planet {
 
 /// Defines the planets in order
 ///
-/// Can be used in a iterator to loop over planets
+/// Can be used in an iterator to loop over planets
 ///
 /// ```
 /// use pracstro::*;
@@ -480,7 +480,7 @@ mod tests {
                     time::Angle::default()
                 ))
                 .unwrap(),
-            0.30982782608980997
+            0.3098278260898096
         );
     }
 }

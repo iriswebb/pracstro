@@ -206,27 +206,27 @@ impl Position {
     ///
     /// This does not retain the distance to the object
     pub fn coords_referenceobject_relative(self) -> Coord {
-        let Self(tx, ty, tz) = self;
-        let r = (tx * tx + ty * ty + tz * tz).sqrt();
-        let l = Angle::atan2(ty, tx);
-        let t2 = Angle::from_radians(0.5 * std::f64::consts::PI - (tz / r).acos());
+        let Self(x, y, z) = self;
+        let r = (x * x + y * y + z * z).sqrt();
+        let lon = Angle::atan2(y, x);
+        let lat = Angle::from_radians((z / r).asin());
 
-        Coord::from_equatorial(l, t2)
+        Coord::from_equatorial(lon, lat)
+    }
+
+    /// Constructs an object from coordinates and distance
+    pub fn from_polar_referenceobject_relative(c: Coord, dist: f64) -> Self {
+        let (lon, lat) = c.equatorial();
+        let x = lat.cos() * lon.cos();
+        let y = lat.cos() * lon.sin();
+        let z = lat.sin();
+
+        Self::from_cartesian((x, y, z)) * dist
     }
 
     /// Decomposes a position into its 2d coordinates and distance, relative to the origin object (by default the Sun)
     pub fn polar_referenceobject_relative(self) -> (Coord, f64) {
         (self.coords_referenceobject_relative(), self.dist())
-    }
-
-    /// Constructs an object from coordinates and distance
-    pub fn from_polar_referenceobject_relative(c: Coord, dist: f64) -> Self {
-        let (lat, long) = c.equatorial();
-        let x = dist * lat.cos() * long.cos();
-        let y = dist * lat.cos() * long.sin();
-        let z = dist * lat.sin();
-
-        Self::from_cartesian((x, y, z))
     }
 
     /// Normalizes the vector so that the distance is 1.0 but the direction remains the same
@@ -272,6 +272,8 @@ impl Div<f64> for Position {
 
 #[cfg(test)]
 mod tests {
+    use crate::moon;
+
     use super::*;
 
     // Many of these tests do not conform with data you can pull out of stellarium/other tools, they are correct nonetheless.
@@ -382,5 +384,9 @@ mod tests {
     }
 
     #[test]
-    fn test_cart() {}
+    fn test_cart() {
+        let c = moon::MOON.location(J2000); // test coord: moon on epoch j2k
+        let p = Position::from_polar_referenceobject_relative(c, 1.0);
+        assert_eq!(p.coords_referenceobject_relative(), c)
+    }
 }

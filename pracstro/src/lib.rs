@@ -57,6 +57,7 @@ pub mod celobj;
 pub mod coord;
 pub mod kepler;
 pub mod moon;
+pub mod probe;
 pub mod sol;
 pub mod time;
 

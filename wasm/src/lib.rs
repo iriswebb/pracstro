@@ -1,10 +1,7 @@
 //! WASM frontend for websites and other tools
 
-use ephem_core::value::CelestObj;
 use ephem_core::*;
-use pracstro::moon::MOON;
 use pracstro::time::Angle;
-use pracstro::*;
 use query::Property;
 use std::collections::HashMap;
 use std::sync::OnceLock;

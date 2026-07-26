@@ -34,11 +34,11 @@ Additional Methods:
 * Latitude displaying: [`Angle::to_latitude()`]
 * Inverse of angle: [`Angle::inverse()`]
 * GST Correction: [`Angle::gst()`] and [`Angle::ungst()`]
-* Approx. Atmosphereic Refraction: [`Angle::refract()`] and [`Angle::refractdelta()`]
+* Approx. Atmospheric Refraction: [`Angle::refract()`] and [`Angle::refractdelta()`]
 * Displaying as string: [`Angle::display_dms`]
 * Simultaneous sine and cosine: [`Angle::sin_cos`]
 
-Trait Impls:
+Trait Implementations:
 * Add, Sub (Angle and Angle)
 * Mul, Div (Angle and f64)
 * Default
@@ -129,7 +129,7 @@ impl Angle {
 
     /// Returns the angle in fractional number of hours
     ///
-    /// A wrapper around [`Angle::degrees()`] and one division by 15. Since one hour is 15 degrees of rotation
+    /// A wrapper around [`Angle::degrees()`] and one division by 15. Because one hour is 15 degrees of rotation
     /// ```
     /// # use pracstro::time::Angle;
     /// Angle::from_degrees(120.0).decimal(); // 8.0
@@ -139,7 +139,7 @@ impl Angle {
     }
     /// Constructs an angle from a fractional number of hours
     ///
-    /// A wrapper around [`Angle::from_degrees()`] and one multiplication by 15. Since one hour is 15 degrees of rotation
+    /// A wrapper around [`Angle::from_degrees()`] and one multiplication by 15. Because one hour is 15 degrees of rotation
     /// ```
     /// # use pracstro::time::Angle;
     /// Angle::from_decimal(8.0).degrees(); // 120.00
@@ -291,7 +291,7 @@ impl Angle {
 impl fmt::Debug for Angle {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let (d, m, s) = self.degminsec();
-        // Hubble has a resolution of 0.1", this is more than sufficent
+        // Hubble has a resolution of 0.1", this is more than sufficient
         write!(f, "{}°{}'{:.2}\"", d, m, s)
     }
 }
@@ -351,7 +351,7 @@ Constants include epochs for various modified julian dates
 
 Implements Add and Sub
 */
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy, PartialOrd)]
 pub struct Date(f64);
 impl Date {
     /// Returns the Julian Date (Epoch -4713 BC)
@@ -445,11 +445,11 @@ impl Date {
         Self::from_calendar(y, m, d, t)
     }
 
-    /// Interface for unix time, Does not correct for the 1582 Julain/Gregorian split
+    /// Interface for unix time, Does not correct for the 1582 Julian/Gregorian split
     pub const fn unix(self) -> f64 {
         (self.julian() - Self::UNIX_JD.julian()) * 86400.0
     }
-    /// Interface for unix time, Does not correct for the 1582 Julain/Gregorian split
+    /// Interface for unix time, Does not correct for the 1582 Julian/Gregorian split
     pub const fn from_unix(t: f64) -> Self {
         Date::from_julian((t / 86400.0) + Self::UNIX_JD.julian())
     }
